@@ -41,6 +41,11 @@ define( 'CACHIFY_DIR', dirname( __FILE__ ) );
 define( 'CACHIFY_BASE', plugin_basename( __FILE__ ) );
 define( 'CACHIFY_CACHE_DIR', WP_CONTENT_DIR . '/cache/cachify' );
 
+/* This constant allows to print cache earlier, but change it only if you know the implications! */
+if ( ! defined( 'CACHIFY_PRINT_CACHE_HOOK' ) ) {
+	define( 'CACHIFY_PRINT_CACHE_HOOK', 'template_redirect' );
+}
+
 
 /* Hooks */
 add_action(

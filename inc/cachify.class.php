@@ -73,9 +73,22 @@ final class Cachify {
 		/* Set defaults */
 		self::_set_default_vars();
 
-		if ( ! is_admin() && ! self::_skip_cache( true ) ) {
+		if ( ! is_admin() ) {
 			/* Check whether there are cached data to be printed. */
-			self::print_cache();
+			if ( did_action( CACHIFY_PRINT_CACHE_HOOK ) || ( current_action() === CACHIFY_PRINT_CACHE_HOOK ) ) {
+				/* Check now. */
+				self::print_cache();
+			} else {
+				/* Check later. */
+				add_action(
+					CACHIFY_PRINT_CACHE_HOOK,
+					array(
+						__CLASS__,
+						'print_cache',
+					),
+					0
+				);
+			}
 		}
 
 		self::$is_nginx = $GLOBALS['is_nginx'];
@@ -1116,8 +1129,8 @@ final class Cachify {
 	 * @since   0.2
 	 * @change  2.3.0
 	 *
-	 * @param   boolean  $base_check Check only if request vars are empty and
-	 *                               whether to skip caching for logged users.
+	 * @param   boolean  $base_check Check only conditions that can be evaluated
+	 *                               as early as on plugin load.
 	 * @return  boolean              TRUE on exclusion
 	 *
 	 * @hook    boolean  cachify_skip_cache
@@ -1142,14 +1155,21 @@ final class Cachify {
 			return true;
 		}
 
-		/* If base check only has been requested, stop here. */
-		if ( $base_check ) {
-			return false;
+		/* User Agents */
+		if ( $options['without_agents'] && isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
+			if ( array_filter( self::_preg_split( $options['without_agents'] ), create_function( '$a', 'return strpos($_SERVER["HTTP_USER_AGENT"], $a);' ) ) ) {
+				return true;
+			}
 		}
 
 		/* No cache hook */
-		if ( apply_filters( 'cachify_skip_cache', false ) ) {
+		if ( apply_filters( 'cachify_skip_cache', false, $base_check ) ) {
 			return true;
+		}
+
+		/* If base check only has been requested, stop here. */
+		if ( $base_check ) {
+			return false;
 		}
 
 		/* Conditional Tags */
@@ -1171,13 +1191,6 @@ final class Cachify {
 		if ( $options['without_ids'] && is_singular() ) {
 			$without_ids = array_map( 'intval', self::_preg_split( $options['without_ids'] ) );
 			if ( in_array( $GLOBALS['wp_query']->get_queried_object_id(), $without_ids, true ) ) {
-				return true;
-			}
-		}
-
-		/* User Agents */
-		if ( $options['without_agents'] && isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
-			if ( array_filter( self::_preg_split( $options['without_agents'] ), create_function( '$a', 'return strpos($_SERVER["HTTP_USER_AGENT"], $a);' ) ) ) {
 				return true;
 			}
 		}
@@ -1319,6 +1332,10 @@ final class Cachify {
 	 * @since 2.3
 	 */
 	public static function print_cache() {
+		/* No caching? */
+		if ( self::_skip_cache( true ) ) {
+			return;
+		}
 
 		/* Data present in cache */
 		$cache = call_user_func(
