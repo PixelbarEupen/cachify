@@ -163,6 +163,9 @@ final class Cachify_HDD {
 		/* Write to file */
 		self::_create_file( self::_file_html( $file_path ), $data );
 		self::_create_file( self::_file_gzip( $file_path ), gzencode( $data, 9 ) );
+		if( function_exists('brotli_compress') ) {
+			self::_create_file( self::_file_brotli(), brotli_compress($data) );
+		}
 	}
 
 	/**
@@ -348,6 +351,19 @@ final class Cachify_HDD {
 	 */
 	private static function _file_gzip( $file_path = '' ) {
 		return ( empty( $file_path ) ? self::_file_path() : $file_path )  . 'index.html.gz';
+	}
+	
+	/**
+	 * Pfad der BROTLI-Datei
+	 *
+	 * @since   2.0
+	 * @change  2.0
+	 *
+	 * @return  string  $diff  Pfad zur BROTLI-Datei
+	 */
+	private static function _file_brotli()
+	{
+		return ( empty( $file_path ) ? self::_file_path() : $file_path )  . 'index.html.br';
 	}
 
 	/**
