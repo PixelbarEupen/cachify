@@ -361,7 +361,7 @@ final class Cachify_HDD {
 	 *
 	 * @return  string  $diff  Pfad zur BROTLI-Datei
 	 */
-	private static function _file_brotli()
+	private static function _file_brotli() 
 	{
 		return ( empty( $file_path ) ? self::_file_path() : $file_path )  . 'index.html.br';
 	}
