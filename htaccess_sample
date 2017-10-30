@@ -1,0 +1,42 @@
+# BEGIN CACHIFY
+            <IfModule mod_rewrite.c>
+                # ENGINE ON
+                RewriteEngine on
+                RewriteBase /
+
+                # set hostname directory
+                RewriteCond %{HTTPS} on
+                RewriteRule .* - [E=CACHIFY_HOST:https-%{HTTP_HOST}]
+                RewriteCond %{HTTPS} off
+                RewriteRule .* - [E=CACHIFY_HOST:%{HTTP_HOST}]
+
+                # set subdirectory
+                # sometimes %{REQUEST_URI} might be an empty string, so /$ won't match
+                RewriteCond %{REQUEST_URI} /$
+                RewriteRule .* - [E=CACHIFY_DIR:%{REQUEST_URI}]
+                RewriteCond %{REQUEST_URI} ^$
+                RewriteRule .* - [E=CACHIFY_DIR:/]
+
+                # gzip & brotli
+                RewriteRule .* - [E=CACHIFY_SUFFIX:]
+                <IfModule mod_mime.c>
+                    RewriteCond %{HTTP:Accept-Encoding} gzip
+                    RewriteRule .* - [E=CACHIFY_SUFFIX:.gz]
+                    AddType text/html .gz
+                    AddEncoding gzip .gz
+
+                    RewriteCond %{HTTP:Accept-Encoding} br
+                    RewriteRule .* - [E=CACHIFY_SUFFIX:.br]
+                    AddType text/html .br
+                    AddEncoding br .br
+                </IfModule>
+
+                # Main Rules
+                RewriteCond %{REQUEST_METHOD} !=POST
+                RewriteCond %{QUERY_STRING} ^$
+                RewriteCond %{REQUEST_URI} !^/(wp-admin|wp-content/cache)/.*
+                RewriteCond %{HTTP_COOKIE} !(wp-postpass|wordpress_logged_in|comment_author)_
+                RewriteCond %{DOCUMENT_ROOT}/wp-content/cache/cachify/%{ENV:CACHIFY_HOST}%{ENV:CACHIFY_DIR}index.html -f
+                RewriteRule ^(.*) /wp-content/cache/cachify/%{ENV:CACHIFY_HOST}%{ENV:CACHIFY_DIR}index.html%{ENV:CACHIFY_SUFFIX} [L]
+            </IfModule>
+            # END CACHIFY
